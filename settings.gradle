@@ -1,7 +1,5 @@
 rootProject.name = 'CryptoPlatform'
 
-include 'modules'
-include 'modules'
 include 'modules:adapters'
 include 'modules:adapters:binance-adapter'
 include 'modules:adapters:bybit-adapter'
@@ -16,3 +14,4 @@ include 'modules:detector-service'
 include 'modules:notifier-service'
 include 'modules:api-service'
 include 'modules:bias-service'
+include 'modules:core'
