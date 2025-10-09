@@ -1,19 +1,5 @@
-plugins {
-    id 'java'
-}
-
-group = 'com.suhoi'
-version = '0.0.1-SNAPSHOT'
-
-repositories {
-    mavenCentral()
-}
+plugins { id 'java-library' }
 
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-}
-
-test {
-    useJUnitPlatform()
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
 }

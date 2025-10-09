@@ -1,17 +1,16 @@
 rootProject.name = 'CryptoPlatform'
 
-include 'modules:adapters'
-include 'modules:adapters:binance-adapter'
-include 'modules:adapters:bybit-adapter'
-include 'modules:adapters:bitget-adapter'
-include 'modules:adapters:gate-adapter'
-include 'modules:adapters:mexc-adapter'
-include 'modules:adapters:dexscreener-adapter'
-include 'modules:discovery-service'
-include 'modules:stream-router'
-include 'modules:fairprice-service'
-include 'modules:detector-service'
-include 'modules:notifier-service'
-include 'modules:api-service'
-include 'modules:bias-service'
-include 'modules:core'
+include 'modules:core',
+        'modules:adapters:binance-adapter',
+        'modules:adapters:bybit-adapter',
+        'modules:adapters:bitget-adapter',
+        'modules:adapters:gate-adapter',
+        'modules:adapters:mexc-adapter',
+        'modules:adapters:dexscreener-adapter',
+        'modules:discovery-service',
+        'modules:stream-router',
+        'modules:fairprice-service',
+        'modules:bias-service',
+        'modules:detector-service',
+        'modules:notifier-service',
+        'modules:api-service'
