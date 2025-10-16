@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: discovery-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${DB_NAME:cryptoscreener}
+    username: ${DB_USER:suhoi}
+    password: ${DB_PASS:suhoi}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      connection-timeout: ${DB_CONN_TIMEOUT_MS:10000}
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog-master.yml
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT_MS:2000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics"
+  endpoint:
+    health:
+      show-details: "always"
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.suhoi: ${LOG_LEVEL_APP:INFO}
+
+nats:
+  url: ${NATS_URL:nats://localhost:4222}
+  connectTimeoutMs: ${NATS_CONNECT_TIMEOUT_MS:3000}
+  reconnectWaitMs: ${NATS_RECONNECT_WAIT_MS:500}
+  maxReconnects: ${NATS_MAX_RECONNECTS:-1}
+  pingIntervalSec: ${NATS_PING_INTERVAL_SEC:10}
+  flushOnClose: ${NATS_FLUSH_ON_CLOSE:true}
+
+server:
+  port: 8081

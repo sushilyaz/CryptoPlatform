@@ -1,0 +1,71 @@
+version: "3.8"
+
+name: cryptoscreener-dev
+
+networks:
+  cs-net:
+    name: cs-net
+
+volumes:
+  pg_data:
+  redis_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      TZ: ${TZ}
+    ports:
+      - "5432:5432"
+    networks:
+      - cs-net
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: cs-redis
+    restart: unless-stopped
+    command: ["redis-server","--save","","--appendonly","no"]
+    # для dev не держим персистентность; для прод — включить AOF/RDB
+    ports:
+      - "6379:6379"
+    networks:
+      - cs-net
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: cs-nats
+    restart: unless-stopped
+    command: ["-m","8222"] # включаем HTTP-мониторинг на 8222 (core NATS, без JetStream)
+    ports:
+      - "4222:4222" # клиентские подключения
+      - "8222:8222" # мониторинг
+    networks:
+      - cs-net
+    healthcheck:
+      # nats-образ на Alpine имеет wget; /healthz отдаёт 200 если сервер жив
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8222/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

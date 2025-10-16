@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 0006-create-price_minute
-      author: suhoi
+      author: cs
       changes:
         - createTable:
             tableName: price_minute
@@ -13,8 +13,7 @@ databaseChangeLog:
                   remarks: "FK → instruments.asset."
                   constraints:
                     nullable: false
-                    referencedTableName: instruments
-                    referencedColumnNames: asset
+                    references: instruments(asset)
                     foreignKeyName: fk_price_minute_instruments
               - column:
                   name: venue
@@ -22,8 +21,7 @@ databaseChangeLog:
                   remarks: "FK → venues. Какая площадка."
                   constraints:
                     nullable: false
-                    referencedTableName: venues
-                    referencedColumnNames: venue
+                    references: venues(venue)
                     foreignKeyName: fk_price_minute_venues
               - column:
                   name: kind
@@ -43,11 +41,22 @@ databaseChangeLog:
                   remarks: "Средняя цена (mid) за минуту для данного рынка."
                   constraints:
                     nullable: false
+
         - addPrimaryKey:
             tableName: price_minute
             columnNames: asset, venue, kind, ts_minute
             constraintName: pk_price_minute
-        - addCheckConstraint:
-            tableName: price_minute
-            constraintName: ck_price_minute_kind
-            checkConstraint: "kind in ('SPOT','PERP','FUTURES','DEX')"
+
+        # CHECK (kind in (...)) через SQL
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            stripComments: true
+            sql: |
+              ALTER TABLE price_minute
+              ADD CONSTRAINT ck_price_minute_kind
+              CHECK (kind IN ('SPOT','PERP','FUTURES','DEX'));
+
+      rollback:
+        - sql: |
+            ALTER TABLE price_minute DROP CONSTRAINT IF EXISTS ck_price_minute_kind;

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 0008-create-alerts
-      author: suhoi
+      author: cs
       changes:
         - createTable:
             tableName: alerts
@@ -26,8 +26,7 @@ databaseChangeLog:
                   remarks: "FK → instruments.asset (по какому инструменту)."
                   constraints:
                     nullable: false
-                    referencedTableName: instruments
-                    referencedColumnNames: asset
+                    references: instruments(asset)
                     foreignKeyName: fk_alerts_instruments
               - column:
                   name: market_id
@@ -35,9 +34,6 @@ databaseChangeLog:
                   remarks: "FK → markets.market_id (на каком рынке обнаружено отклонение)."
                   constraints:
                     nullable: false
-                    referencedTableName: markets
-                    referencedColumnNames: market_id
-                    foreignKeyName: fk_alerts_markets
               - column:
                   name: dev_pct
                   type: numeric(12,6)
@@ -74,7 +70,30 @@ databaseChangeLog:
                   remarks: "Состояние алерта: OPEN — открытие, CLOSE — закрытие."
                   constraints:
                     nullable: false
-        - addCheckConstraint:
-            tableName: alerts
-            constraintName: ck_alerts_state
-            checkConstraint: "state in ('OPEN','CLOSE')"
+
+        # FK на markets.market_id (отдельным шагом — так надёжнее)
+        - addForeignKeyConstraint:
+            baseTableName: alerts
+            baseColumnNames: market_id
+            referencedTableName: markets
+            referencedColumnNames: market_id
+            constraintName: fk_alerts_markets
+            onDelete: RESTRICT
+            onUpdate: RESTRICT
+
+        # CHECK (state in (...)) через SQL
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            stripComments: true
+            sql: |
+              ALTER TABLE alerts
+              ADD CONSTRAINT ck_alerts_state
+              CHECK (state IN ('OPEN','CLOSE'));
+
+      rollback:
+        - sql: |
+            ALTER TABLE alerts DROP CONSTRAINT IF EXISTS ck_alerts_state;
+        - dropForeignKeyConstraint:
+            baseTableName: alerts
+            constraintName: fk_alerts_markets

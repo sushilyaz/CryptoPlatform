@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 0003-create-markets
-      author: suhoi
+      author: cs
       changes:
         - createTable:
             tableName: markets
@@ -21,8 +21,7 @@ databaseChangeLog:
                   remarks: "FK → instruments.asset (какой инструмент)."
                   constraints:
                     nullable: false
-                    referencedTableName: instruments
-                    referencedColumnNames: asset
+                    references: instruments(asset)
                     foreignKeyName: fk_markets_instruments
               - column:
                   name: venue
@@ -30,8 +29,7 @@ databaseChangeLog:
                   remarks: "FK → venues. На какой площадке торгуется рынок."
                   constraints:
                     nullable: false
-                    referencedTableName: venues
-                    referencedColumnNames: venue
+                    references: venues(venue)
                     foreignKeyName: fk_markets_venues
               - column:
                   name: kind
@@ -63,11 +61,22 @@ databaseChangeLog:
                   remarks: "Минимальный номинал сделки в USDT (если известно)."
                   constraints:
                     nullable: true
+
         - addUniqueConstraint:
             tableName: markets
             columnNames: asset, venue, kind
             constraintName: uq_markets_asset_venue_kind
-        - addCheckConstraint:
-            tableName: markets
-            constraintName: ck_markets_kind
-            checkConstraint: "kind in ('SPOT','PERP','FUTURES','DEX')"
+
+        # CHECK (kind in (...)) через сырой SQL — кросс-версионно надёжно
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            stripComments: true
+            sql: |
+              ALTER TABLE markets
+              ADD CONSTRAINT ck_markets_kind
+              CHECK (kind IN ('SPOT','PERP','FUTURES','DEX'));
+
+      rollback:
+        - sql: |
+            ALTER TABLE markets DROP CONSTRAINT IF EXISTS ck_markets_kind;

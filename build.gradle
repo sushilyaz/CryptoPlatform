@@ -65,3 +65,16 @@ configure(appModules) {
 		testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	}
 }
+ext {
+	springDotenv = 'me.paulschwarz:spring-dotenv:4.0.0'
+}
+
+// Подключаем dotenv ТОЛЬКО к подпроектам, где применён плагин Spring Boot
+subprojects { subproj ->
+	plugins.withId('org.springframework.boot') {
+		subproj.dependencies {
+			implementation springDotenv
+		}
+	}
+}
+

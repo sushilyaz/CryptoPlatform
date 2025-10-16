@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 0011-seed-venues
-      author: cs
+      author: suhoi
       changes:
         - insert:
             tableName: venues
