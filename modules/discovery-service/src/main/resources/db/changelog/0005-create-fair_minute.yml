@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0005-create-fair_minute
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: fair_minute
+            remarks: "Минутные значения справедливой цены (FAIR) по каждому инструменту."
+            columns:
+              - column:
+                  name: asset
+                  type: text
+                  remarks: "FK → instruments.asset (какой инструмент)."
+                  constraints:
+                    nullable: false
+                    referencedTableName: instruments
+                    referencedColumnNames: asset
+                    foreignKeyName: fk_fair_minute_instruments
+              - column:
+                  name: ts_minute
+                  type: timestamp with time zone
+                  remarks: "Отметка минуты (UTC, округление вниз до минуты)."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fair
+                  type: numeric(38,18)
+                  remarks: "FAIR-цена за минуту."
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: fair_minute
+            columnNames: asset, ts_minute
+            constraintName: pk_fair_minute

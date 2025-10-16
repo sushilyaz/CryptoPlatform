@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0009-create-settings
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: settings
+            remarks: "Ключ-значение настроек системы (пороги, анти-шум и пр.) в формате JSON."
+            columns:
+              - column:
+                  name: key
+                  type: text
+                  remarks: "Имя настройки (уникальный ключ). PK."
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_settings
+                    nullable: false
+              - column:
+                  name: value_json
+                  type: jsonb
+                  remarks: "Значение настройки в формате JSON (гибкая схема)."
+                  constraints:
+                    nullable: false

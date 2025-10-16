@@ -1,0 +1,53 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0006-create-price_minute
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: price_minute
+            remarks: "Минутные цены per-venue (для графика: линии площадок)."
+            columns:
+              - column:
+                  name: asset
+                  type: text
+                  remarks: "FK → instruments.asset."
+                  constraints:
+                    nullable: false
+                    referencedTableName: instruments
+                    referencedColumnNames: asset
+                    foreignKeyName: fk_price_minute_instruments
+              - column:
+                  name: venue
+                  type: text
+                  remarks: "FK → venues. Какая площадка."
+                  constraints:
+                    nullable: false
+                    referencedTableName: venues
+                    referencedColumnNames: venue
+                    foreignKeyName: fk_price_minute_venues
+              - column:
+                  name: kind
+                  type: text
+                  remarks: "Тип рынка: SPOT | PERP | FUTURES | DEX."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ts_minute
+                  type: timestamp with time zone
+                  remarks: "Отметка минуты (UTC)."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mid
+                  type: numeric(38,18)
+                  remarks: "Средняя цена (mid) за минуту для данного рынка."
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: price_minute
+            columnNames: asset, venue, kind, ts_minute
+            constraintName: pk_price_minute
+        - addCheckConstraint:
+            tableName: price_minute
+            constraintName: ck_price_minute_kind
+            checkConstraint: "kind in ('SPOT','PERP','FUTURES','DEX')"

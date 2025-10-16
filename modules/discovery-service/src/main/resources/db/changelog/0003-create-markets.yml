@@ -1,0 +1,73 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0003-create-markets
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: markets
+            remarks: "Рынки (инструмент на конкретной площадке и типе: SPOT/PERP/FUTURES/DEX)."
+            columns:
+              - column:
+                  name: market_id
+                  type: BIGSERIAL
+                  remarks: "Внутренний идентификатор рынка. PK."
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_markets
+                    nullable: false
+              - column:
+                  name: asset
+                  type: text
+                  remarks: "FK → instruments.asset (какой инструмент)."
+                  constraints:
+                    nullable: false
+                    referencedTableName: instruments
+                    referencedColumnNames: asset
+                    foreignKeyName: fk_markets_instruments
+              - column:
+                  name: venue
+                  type: text
+                  remarks: "FK → venues. На какой площадке торгуется рынок."
+                  constraints:
+                    nullable: false
+                    referencedTableName: venues
+                    referencedColumnNames: venue
+                    foreignKeyName: fk_markets_venues
+              - column:
+                  name: kind
+                  type: text
+                  remarks: "Тип рынка: SPOT | PERP | FUTURES | DEX."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: native_symbol
+                  type: text
+                  remarks: "Нативный символ на площадке (BTCUSDT, BTCUSDT_PERP, ...)."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: text
+                  remarks: "Статус на площадке (TRADING и т.п.) — для фильтрации неактивных."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: min_qty
+                  type: numeric(38,18)
+                  remarks: "Минимально разрешённое количество (если известно из листинга)."
+                  constraints:
+                    nullable: true
+              - column:
+                  name: min_notional
+                  type: numeric(38,18)
+                  remarks: "Минимальный номинал сделки в USDT (если известно)."
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: markets
+            columnNames: asset, venue, kind
+            constraintName: uq_markets_asset_venue_kind
+        - addCheckConstraint:
+            tableName: markets
+            constraintName: ck_markets_kind
+            checkConstraint: "kind in ('SPOT','PERP','FUTURES','DEX')"

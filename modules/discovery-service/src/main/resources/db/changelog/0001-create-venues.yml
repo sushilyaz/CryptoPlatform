@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-create-venues
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: venues
+            remarks: "Справочник площадок (бирж). Включает код, человеко-читаемое имя и флаг активности."
+            columns:
+              - column:
+                  name: venue
+                  type: text
+                  remarks: "Код площадки (уникальный, верхний регистр: BINANCE/BYBIT/...). PK."
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_venues
+                    nullable: false
+              - column:
+                  name: name
+                  type: text
+                  remarks: "Человеко-читаемое название площадки."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enabled
+                  type: boolean
+                  defaultValueBoolean: true
+                  remarks: "Флаг: можно ли использовать площадку сейчас (подписываться, считать метрики)."
+                  constraints:
+                    nullable: false

@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0007-create-venue_bias
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: venue_bias
+            remarks: "Минутные снапшоты устойчивого сдвига (bias) per-market для прозрачности/диагностики."
+            columns:
+              - column:
+                  name: asset
+                  type: text
+                  remarks: "FK → instruments.asset (для агрегирования/поиска)."
+                  constraints:
+                    nullable: false
+                    referencedTableName: instruments
+                    referencedColumnNames: asset
+                    foreignKeyName: fk_venue_bias_instruments
+              - column:
+                  name: market_id
+                  type: bigint
+                  remarks: "FK → markets.market_id (какому рынку принадлежит bias)."
+                  constraints:
+                    nullable: false
+                    referencedTableName: markets
+                    referencedColumnNames: market_id
+                    foreignKeyName: fk_venue_bias_markets
+                    deleteCascade: true
+              - column:
+                  name: ts_minute
+                  type: timestamp with time zone
+                  remarks: "Отметка минуты (UTC)."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bias
+                  type: numeric(38,18)
+                  remarks: "Значение EWMA(price - fair) на минутной гранулярности."
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: venue_bias
+            columnNames: asset, market_id, ts_minute
+            constraintName: pk_venue_bias

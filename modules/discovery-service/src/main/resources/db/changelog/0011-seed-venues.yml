@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0011-seed-venues
+      author: cs
+      changes:
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "BINANCE" }
+              - column: { name: name,  value: "Binance" }
+              - column: { name: enabled, valueBoolean: true }
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "BYBIT" }
+              - column: { name: name,  value: "Bybit" }
+              - column: { name: enabled, valueBoolean: true }
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "BITGET" }
+              - column: { name: name,  value: "Bitget" }
+              - column: { name: enabled, valueBoolean: true }
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "GATE" }
+              - column: { name: name,  value: "Gate.io" }
+              - column: { name: enabled, valueBoolean: true }
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "MEXC" }
+              - column: { name: name,  value: "MEXC" }
+              - column: { name: enabled, valueBoolean: true }
+        - insert:
+            tableName: venues
+            columns:
+              - column: { name: venue, value: "DEXSCREENER" }
+              - column: { name: name,  value: "DexScreener" }
+              - column: { name: enabled, valueBoolean: true }

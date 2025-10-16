@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0004-create-market_quality
+      author: cs
+      changes:
+        - createTable:
+            tableName: market_quality
+            remarks: "Качество рынка (ликвидность/объёмы/пульс). 1:1 с markets."
+            columns:
+              - column:
+                  name: market_id
+                  type: bigint
+                  remarks: "PK и FK → markets.market_id. Жизненный цикл связан с рынком."
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_market_quality
+                    nullable: false
+                    referencedTableName: markets
+                    referencedColumnNames: market_id
+                    foreignKeyName: fk_mq_markets
+                    deleteCascade: true
+              - column:
+                  name: vol24h_usd
+                  type: numeric(18,2)
+                  remarks: "Оценка суточного объёма в USD (для анти-шума/весов)."
+                  constraints:
+                    nullable: true
+              - column:
+                  name: depth50_usd
+                  type: numeric(18,2)
+                  remarks: "Оценка глубины до $50 в стакане (используется в весах fair)."
+                  constraints:
+                    nullable: true
+              - column:
+                  name: quality_score
+                  type: numeric(9,4)
+                  remarks: "Сводный показатель качества рынка (0..1) на основе vol/depth/прочего."
+                  constraints:
+                    nullable: true
+              - column:
+                  name: last_heartbeat_ts
+                  type: timestamp with time zone
+                  remarks: "Последний «пульс» живости стрима по рынку (используется watchdog’ом)."
+                  constraints:
+                    nullable: true

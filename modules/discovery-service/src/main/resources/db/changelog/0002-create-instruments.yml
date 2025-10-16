@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0002-create-instruments
+      author: suhoi
+      changes:
+        - createTable:
+            tableName: instruments
+            remarks: "Канонические инструменты проекта. Все котируется в USDT."
+            columns:
+              - column:
+                  name: asset
+                  type: text
+                  remarks: "Код актива (BASE), напр. BTC, ETH. PK."
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_instruments
+                    nullable: false
+              - column:
+                  name: base_symbol
+                  type: text
+                  remarks: "Оригинальное имя BASE из листинга/адаптера (для прозрачности)."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quote_symbol
+                  type: text
+                  defaultValue: "USDT"
+                  remarks: "Котируемая валюта. Всегда USDT."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scale
+                  type: int
+                  remarks: "Масштаб цены (число знаков после запятой), используется для округлений/рендеринга."
+                  constraints:
+                    nullable: false

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/0001-create-venues.yml
+  - include:
+      file: db/changelog/0002-create-instruments.yml
+  - include:
+      file: db/changelog/0003-create-markets.yml
+  - include:
+      file: db/changelog/0004-create-market_quality.yml
+  - include:
+      file: db/changelog/0005-create-fair_minute.yml
+  - include:
+      file: db/changelog/0006-create-price_minute.yml
+  - include:
+      file: db/changelog/0007-create-venue_bias.yml
+  - include:
+      file: db/changelog/0008-create-alerts.yml
+  - include:
+      file: db/changelog/0009-create-settings.yml
+  - include:
+      file: db/changelog/0010-add-indexes.yml
+  - include:
+      file: db/changelog/0011-seed-venues.yml

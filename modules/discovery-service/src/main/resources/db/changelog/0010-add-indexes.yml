@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0010-indexes
+      author: suhoi
+      changes:
+        - createIndex:
+            tableName: market_quality
+            indexName: ix_mq_last_heartbeat
+            columns:
+              - column:
+                  name: last_heartbeat_ts
+        - createIndex:
+            tableName: alerts
+            indexName: ix_alerts_ts
+            columns:
+              - column:
+                  name: ts
+        - createIndex:
+            tableName: price_minute
+            indexName: ix_price_minute_ts
+            columns:
+              - column:
+                  name: ts_minute
