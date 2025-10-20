@@ -1,4 +1,4 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

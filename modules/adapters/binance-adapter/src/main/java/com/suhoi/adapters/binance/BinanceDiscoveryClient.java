@@ -1,7 +1,7 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
-import com.suhoi.adapter.DiscoveryClient;
-import com.suhoi.adapter.VenueListing;
+import com.suhoi.api.adapter.DiscoveryClient;
+import com.suhoi.api.adapter.VenueListing;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.suhoi.BinanceJson.MAPPER;
+import static com.suhoi.adapters.binance.BinanceJson.MAPPER;
 
 /**
  * DiscoveryClient для Binance: <br>

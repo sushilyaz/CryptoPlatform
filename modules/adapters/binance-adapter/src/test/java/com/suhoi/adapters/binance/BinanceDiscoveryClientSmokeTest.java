@@ -1,6 +1,6 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
-import com.suhoi.adapter.VenueListing;
+import com.suhoi.api.adapter.VenueListing;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

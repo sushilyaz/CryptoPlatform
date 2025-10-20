@@ -1,4 +1,4 @@
-package com.suhoi.adapter;
+package com.suhoi.api.adapter;
 
 /**
  * Композит для конкретной биржи.

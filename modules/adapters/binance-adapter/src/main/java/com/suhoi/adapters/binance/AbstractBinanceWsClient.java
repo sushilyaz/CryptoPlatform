@@ -1,9 +1,9 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.suhoi.adapter.StreamClient;
-import com.suhoi.adapter.StreamSubscription;
-import com.suhoi.adapter.TickHandler;
+import com.suhoi.api.adapter.StreamClient;
+import com.suhoi.api.adapter.StreamSubscription;
+import com.suhoi.api.adapter.TickHandler;
 import com.suhoi.events.Tick;
 
 import java.math.BigDecimal;
@@ -15,10 +15,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.suhoi.BinanceJson.MAPPER;
-import static com.suhoi.BinanceSymbols.extractBaseOrThrow;
+import static com.suhoi.adapters.binance.BinanceJson.MAPPER;
+import static com.suhoi.adapters.binance.BinanceSymbols.extractBaseOrThrow;
 
 /**
  * Базовый WS-клиент комбо-потоков @bookTicker.

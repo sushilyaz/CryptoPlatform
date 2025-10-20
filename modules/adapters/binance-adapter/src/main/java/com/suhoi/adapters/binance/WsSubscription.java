@@ -1,6 +1,6 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
-import com.suhoi.adapter.StreamSubscription;
+import com.suhoi.api.adapter.StreamSubscription;
 
 import java.net.http.WebSocket;
 import java.util.concurrent.CompletableFuture;
