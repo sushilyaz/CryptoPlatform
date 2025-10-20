@@ -78,4 +78,7 @@ subprojects { subproj ->
 		}
 	}
 }
+//tasks.named('build').configure {
+//	dependsOn ':modules:adapters:mexc-adapter:generateProto'
+//}
 

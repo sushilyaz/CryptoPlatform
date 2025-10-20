@@ -1,8 +1,61 @@
-plugins { id 'java-library' }
+import com.google.protobuf.gradle.GenerateProtoTask
+import org.gradle.jvm.tasks.Jar
+
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'com.suhoi.adapters.mexc'
+version = '0.1.0'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
-    // Адаптер реализует интерфейсы из core и использует его типы — делаем транзитивно доступным
     api project(':modules:core')
 
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.2'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.google.protobuf:protobuf-java:3.25.3'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
 }
+
+test { useJUnitPlatform() }
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:3.25.3" }
+    generatedFilesBaseDir = "$projectDir/build/generated"
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins { java { option 'lite' } }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto { srcDir 'src/main/proto' }
+        // ВАЖНО: не добавляем вручную build/generated в java.srcDirs — это вызывает дубли
+        resources { exclude '**/*.proto' }
+    }
+}
+
+tasks.withType(ProcessResources).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn tasks.withType(GenerateProtoTask)
+}
+

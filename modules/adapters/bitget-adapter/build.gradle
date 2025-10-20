@@ -1,8 +1,28 @@
 plugins { id 'java-library' }
 
+group = 'com.suhoi.adapters.bitget'
+version = '0.1.0'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+    withJavadocJar()
+    withSourcesJar()
+}
+
 dependencies {
-    // Адаптер реализует интерфейсы из core и использует его типы — делаем транзитивно доступным
     api project(':modules:core')
+
+    // JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.2'
+
+    // Lombok (логирование/утилиты)
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
 }
+
+test { useJUnitPlatform() }
