@@ -1,0 +1,15 @@
+### discovery health
+GET {{DISCOVERY_BASE}}/actuator/health
+
+> {%
+    client.test("discovery-service health is UP", function () {
+        client.assert(response.status === 200);
+        const body = JSON.parse(response.body);
+        client.assert(body.status === "UP");
+    });
+%}
+
+### (опционально) проверить, что таблицы созданы — если сделан эндпоинт /api/health c деталями
+# Если у тебя появится кастомный health с деталями БД — добавь проверки ниже.
+# GET {{DISCOVERY_BASE}}/api/health
+# > {% ... %}

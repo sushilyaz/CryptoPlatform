@@ -1,0 +1,47 @@
+### NATS is healthy?
+# Проверяем HTTP-мониторинг nats на 8222
+GET {{NATS_MONITOR}}/healthz
+
+> {%
+    client.test("NATS /healthz returns 200", function () {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+%}
+
+### api-service health
+GET {{API_BASE}}/actuator/health
+
+> {%
+    client.test("api-service is UP", function () {
+        client.assert(response.status === 200);
+        const data = JSON.parse(response.body);
+        client.assert(data.status === "UP", "Health: " + data.status);
+    });
+%}
+
+### discovery-service health
+GET {{DISCOVERY_BASE}}/actuator/health
+
+> {%
+    client.test("discovery-service is UP", function () {
+        client.assert(response.status === 200);
+        const data = JSON.parse(response.body);
+        client.assert(data.status === "UP", "Health: " + data.status);
+    });
+%}
+
+### Echo smoke: publish → receive (см. логи api-service)
+# Публикуем сообщение в control.echo через api-service.
+# api-service должен быть запущен со встроенным EchoSubscriber (A6).
+GET {{API_BASE}}/api/echo?msg=hello-{{$uuid}}
+
+> {%
+    client.test("echo published ack is correct", function () {
+        client.assert(response.status === 200);
+        const data = JSON.parse(response.body);
+        client.assert(data.status === "published");
+        client.assert(data.subject === "control.echo");
+        client.assert(!!data.id, "id is present");
+        client.assert(!!data.sender, "sender is present");
+    });
+%}

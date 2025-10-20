@@ -1,0 +1,36 @@
+### api health
+GET {{API_BASE}}/actuator/health
+
+> {%
+    client.test("api-service health is UP", function () {
+        client.assert(response.status === 200);
+        const body = JSON.parse(response.body);
+        client.assert(body.status === "UP");
+    });
+%}
+
+### echo via GET
+# Быстрый publish в control.echo (в логах api-service увидишь прием сообщения)
+GET {{API_BASE}}/api/echo?msg=echo-get-{{$timestamp}}
+
+> {%
+    client.test("echo GET published", function () {
+        client.assert(response.status === 200);
+        const data = JSON.parse(response.body);
+        client.assert(data.status === "published");
+    });
+%}
+
+### echo via POST (для длинных строк)
+POST {{API_BASE}}/api/echo
+Content-Type: text/plain
+
+echo-post-{{$uuid}}
+
+> {%
+    client.test("echo POST published", function () {
+        client.assert(response.status === 200);
+        const data = JSON.parse(response.body);
+        client.assert(data.status === "published");
+    });
+%}

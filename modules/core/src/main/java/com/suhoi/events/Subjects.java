@@ -19,6 +19,10 @@ public final class Subjects {
         return "alerts." + asset;
     }
 
+    public static String echo(String asset) {
+        return "echo." + asset;
+    }
+
     public static final String CONTROL_ECHO = "control.echo";
 
     public static final String TICKS_ALL = "ticks.>";
