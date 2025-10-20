@@ -38,7 +38,8 @@ configure([
 ]) {
 	apply plugin: 'java-library'
 	dependencies {
-		testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit}"
+		testImplementation "org.junit.jupiter:junit-jupiter-api:${versions.junit}"
+		testRuntimeOnly  "org.junit.jupiter:junit-jupiter-engine:${versions.junit}"
 	}
 }
 
