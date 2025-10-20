@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: api-service
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+
+server:
+  port: 8080
+
+nats:
+  url: ${NATS_URL:nats://localhost:4222}
+  connectTimeoutMs: ${NATS_CONNECT_TIMEOUT_MS:3000}
+  reconnectWaitMs: ${NATS_RECONNECT_WAIT_MS:500}
+  maxReconnects: ${NATS_MAX_RECONNECTS:-1}
+  pingIntervalSec: ${NATS_PING_INTERVAL_SEC:10}
+  flushOnClose: ${NATS_FLUSH_ON_CLOSE:true}
