@@ -1,4 +1,4 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
 /**
  * Futures (USDT-M) WS streams клиент.

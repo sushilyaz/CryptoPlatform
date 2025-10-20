@@ -1,4 +1,4 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
 import java.util.Locale;
 import java.util.regex.Pattern;

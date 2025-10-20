@@ -1,4 +1,4 @@
-package com.suhoi;
+package com.suhoi.adapters.gate;
 
 import com.suhoi.adapter.StreamSubscription;
 import com.suhoi.adapter.TickHandler;
@@ -14,12 +14,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Smoke для WS-стриминга Binance (SPOT и PERP).
+ * Smoke для WS-стриминга Gate (SPOT и PERP).
  * Тест онлайн, требует интернет.
  */
-class BinanceStreamingSmokeTest {
+class GateStreamingSmokeTest {
 
-    private BinanceAdapter adapter;
+    private GateAdapter adapter;
     private StreamSubscription spotSub;
     private StreamSubscription perpSub;
 
@@ -31,18 +31,18 @@ class BinanceStreamingSmokeTest {
     }
 
     @Test
-    void receivesAtLeastOneTickForSpotAndPerp_BTCUSDT() throws Exception {
-        adapter = new BinanceAdapter();
+    void receivesAtLeastOneTickForSpotAndPerp_BTC_USDT() throws Exception {
+        adapter = new GateAdapter();
 
         var spotLatch = new CountDownLatch(1);
         var perpLatch = new CountDownLatch(1);
         var gotSpot = new AtomicBoolean(false);
         var gotPerp = new AtomicBoolean(false);
 
-        var handler = (TickHandler) (Tick t) -> {
-            // адаптер выдаёт Tick согласно твоему core: asset=BASE, venue/kind, BigDecimal/Instant
-            if (!"BINANCE".equals(t.venue())) return;
-            if (!"BTC".equalsIgnoreCase(t.asset())) return;
+        TickHandler handler = (Tick t) -> {
+//             адаптер выдаёт Tick согласно core: asset=BASE, venue/kind, BigDecimal/Instant
+            if (!"GATE".equals(t.venue())) return;
+            if (!"AIA".equalsIgnoreCase(t.asset())) return;
             if (t.mid() == null) return;
 
             if ("SPOT".equalsIgnoreCase(t.kind()) && gotSpot.compareAndSet(false, true)) {
@@ -51,13 +51,15 @@ class BinanceStreamingSmokeTest {
             if ("PERP".equalsIgnoreCase(t.kind()) && gotPerp.compareAndSet(false, true)) {
                 perpLatch.countDown();
             }
+            System.out.println(t);
         };
 
-        spotSub = adapter.spotStream().subscribeBookTicker(List.of("BTCUSDT"), handler);
-        perpSub = adapter.perpStream().subscribeBookTicker(List.of("BTCUSDT"), handler);
+        // У Gate нативный символ с подчёркиванием
+        spotSub = adapter.spotStream().subscribeBookTicker(List.of("AIA_USDT"), handler);
+        perpSub = adapter.perpStream().subscribeBookTicker(List.of("AIA_USDT"), handler);
 
-        boolean spotOk = spotLatch.await(15, TimeUnit.SECONDS);
-        boolean perpOk = perpLatch.await(15, TimeUnit.SECONDS);
+        boolean spotOk = spotLatch.await(10, TimeUnit.SECONDS);
+        boolean perpOk = perpLatch.await(10, TimeUnit.SECONDS);
 
         assertTrue(spotOk, "Should receive SPOT tick within 15s");
         assertTrue(perpOk, "Should receive PERP tick within 15s");

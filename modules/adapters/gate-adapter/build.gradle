@@ -1,8 +1,36 @@
-plugins { id 'java-library' }
+plugins {
+    id 'java-library'
+}
+
+group = 'com.suhoi.adapters.gate'
+version = '0.1.0'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
-    // Адаптер реализует интерфейсы из core и использует его типы — делаем транзитивно доступным
     api project(':modules:core')
 
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
+    // Jackson (у тебя уже в ряде модулей есть, дубли не страшны — Gradle дедупликнет по версии)
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.2'
+
+    // WebSocket client
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // Lombok (только в этом модуле)
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    // JUnit5 (подхватится из корня, но оставлю на случай standalone запуска)
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
+}
+
+test {
+    useJUnitPlatform()
 }

@@ -1,4 +1,4 @@
-package com.suhoi;
+package com.suhoi.adapters.binance;
 
 /**
  * Spot WS streams клиент. <br>
