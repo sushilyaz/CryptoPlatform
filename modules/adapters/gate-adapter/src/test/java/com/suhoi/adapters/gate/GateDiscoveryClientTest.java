@@ -1,6 +1,6 @@
 package com.suhoi.adapters.gate;
 
-import com.suhoi.adapter.VenueListing;
+import com.suhoi.api.adapter.VenueListing;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

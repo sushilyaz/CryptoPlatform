@@ -1,8 +1,8 @@
 package com.suhoi.adapters.gate;
 
-import com.suhoi.adapter.DiscoveryClient;
-import com.suhoi.adapter.ExchangeAdapter;
-import com.suhoi.adapter.StreamClient;
+import com.suhoi.api.adapter.DiscoveryClient;
+import com.suhoi.api.adapter.ExchangeAdapter;
+import com.suhoi.api.adapter.StreamClient;
 
 /**
  * Композит для Gate: discovery + два потоковых клиента (SPOT и PERP).

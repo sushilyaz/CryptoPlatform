@@ -1,9 +1,8 @@
 package com.suhoi.adapters.gate;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.suhoi.adapter.DiscoveryClient;
-import com.suhoi.adapter.VenueListing;
-import lombok.extern.slf4j.Slf4j;
+import com.suhoi.api.adapter.DiscoveryClient;
+import com.suhoi.api.adapter.VenueListing;
 
 import java.net.URI;
 import java.net.http.HttpClient;

@@ -1,7 +1,7 @@
 package com.suhoi.adapters.gate;
 
-import com.suhoi.adapter.StreamSubscription;
-import com.suhoi.adapter.TickHandler;
+import com.suhoi.api.adapter.StreamSubscription;
+import com.suhoi.api.adapter.TickHandler;
 import com.suhoi.events.Tick;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

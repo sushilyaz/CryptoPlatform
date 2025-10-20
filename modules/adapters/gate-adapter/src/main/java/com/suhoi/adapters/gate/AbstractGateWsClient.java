@@ -1,19 +1,16 @@
 package com.suhoi.adapters.gate;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.suhoi.adapter.StreamClient;
-import com.suhoi.adapter.StreamSubscription;
-import com.suhoi.adapter.TickHandler;
+import com.suhoi.api.adapter.StreamClient;
+import com.suhoi.api.adapter.StreamSubscription;
+import com.suhoi.api.adapter.TickHandler;
 import com.suhoi.events.Tick;
-import lombok.extern.slf4j.Slf4j;
 
-import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
