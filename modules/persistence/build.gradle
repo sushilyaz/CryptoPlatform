@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+    id 'io.spring.dependency-management'
+}
+
+group = 'com.suhoi'
+version = '0.0.1-SNAPSHOT'
+description = 'CryptoPlatform - persistence (entities + repositories)'
+
+dependencies {
+    api project(':modules:core')
+
+    // импортируем BOM, чтобы версии starters и Hibernate были совместимы с Boot 3.5.x
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.6")
+
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Для компиляции этой библиотеки драйвер не требуется; драйвер объявлен в приложениях
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
+}

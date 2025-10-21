@@ -1,12 +1,14 @@
 rootProject.name = 'CryptoPlatform'
 
 include 'modules:core',
+        'modules:persistence',
         'modules:adapters:binance-adapter',
         'modules:adapters:bybit-adapter',
         'modules:adapters:bitget-adapter',
         'modules:adapters:gate-adapter',
         'modules:adapters:mexc-adapter',
         'modules:adapters:dexscreener-adapter',
+        'modules:db-migration-service',
         'modules:discovery-service',
         'modules:stream-router',
         'modules:fairprice-service',

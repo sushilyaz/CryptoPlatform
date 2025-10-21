@@ -1,0 +1,19 @@
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'java'
+}
+
+group = 'com.suhoi'
+version = '0.0.1-SNAPSHOT'
+description = 'CryptoPlatform - db-migration-service (Liquibase runner)'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'       // Core Boot
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'   // DataSource
+    implementation 'org.liquibase:liquibase-core'                        // Liquibase
+
+    runtimeOnly 'org.postgresql:postgresql'                              // DB driver
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
