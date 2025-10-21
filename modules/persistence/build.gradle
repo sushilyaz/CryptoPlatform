@@ -1,0 +1,25 @@
+plugins {
+    id 'java-library'
+    id 'io.spring.dependency-management'
+}
+
+group = 'com.suhoi'
+version = '0.0.1-SNAPSHOT'
+description = 'CryptoPlatform - persistence (entities + repositories)'
+
+dependencies {
+    implementation project(':modules:core')
+
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.6")
+
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
+}

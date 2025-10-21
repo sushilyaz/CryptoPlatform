@@ -10,8 +10,9 @@ description = 'CryptoPlatform (multi-module)'
 
 ext {
 	versions = [
-			junit   : '5.10.3'
+			junit: '5.10.3'
 	]
+	springDotenv = 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 allprojects {
@@ -25,10 +26,11 @@ subprojects {
 }
 
 /**
- * Библиотечные модули (core + adapters) — без Spring Boot
+ * Библиотечные модули (core + adapters + persistence) — без Spring Boot
  */
 configure([
 		project(':modules:core'),
+		project(':modules:persistence'),
 		project(':modules:adapters:binance-adapter'),
 		project(':modules:adapters:bybit-adapter'),
 		project(':modules:adapters:bitget-adapter'),
@@ -37,6 +39,7 @@ configure([
 		project(':modules:adapters:dexscreener-adapter')
 ]) {
 	apply plugin: 'java-library'
+
 	dependencies {
 		testImplementation "org.junit.jupiter:junit-jupiter-api:${versions.junit}"
 		testRuntimeOnly  "org.junit.jupiter:junit-jupiter-engine:${versions.junit}"
@@ -47,6 +50,7 @@ configure([
  * Приложения (Spring Boot сервисы)
  */
 def appModules = [
+		project(':modules:db-migration-service'),
 		project(':modules:discovery-service'),
 		project(':modules:stream-router'),
 		project(':modules:fairprice-service'),
@@ -62,15 +66,19 @@ configure(appModules) {
 
 	dependencies {
 		implementation project(':modules:core')
+		implementation project(':modules:persistence')       // NEW: entities + repos + autoconfig
+
 		implementation 'org.springframework.boot:spring-boot-starter'
+		implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+		// DB driver for runtime services
+		runtimeOnly 'org.postgresql:postgresql'
+
 		testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	}
 }
-ext {
-	springDotenv = 'me.paulschwarz:spring-dotenv:4.0.0'
-}
 
-// Подключаем dotenv ТОЛЬКО к подпроектам, где применён плагин Spring Boot
+/** Подключаем dotenv ТОЛЬКО к подпроектам с Spring Boot */
 subprojects { subproj ->
 	plugins.withId('org.springframework.boot') {
 		subproj.dependencies {
@@ -78,7 +86,3 @@ subprojects { subproj ->
 		}
 	}
 }
-//tasks.named('build').configure {
-//	dependsOn ':modules:adapters:mexc-adapter:generateProto'
-//}
-
