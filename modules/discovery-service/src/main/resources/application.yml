@@ -1,45 +1,32 @@
 spring:
   application:
     name: discovery-service
-
-  datasource:
-    url: jdbc:postgresql://localhost:5432/${DB_NAME:cryptoscreener}
-    username: ${DB_USER:suhoi}
-    password: ${DB_PASS:suhoi}
-    hikari:
-      maximum-pool-size: ${DB_POOL_MAX:10}
-      connection-timeout: ${DB_CONN_TIMEOUT_MS:10000}
-
-  liquibase:
-    enabled: false
-
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      timeout: ${REDIS_TIMEOUT_MS:2000}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
 
 management:
   endpoints:
     web:
       exposure:
-        include: "health,info,metrics"
-  endpoint:
-    health:
-      show-details: "always"
+        include: health,info
 
-logging:
-  level:
-    root: ${LOG_LEVEL_ROOT:INFO}
-    com.suhoi: ${LOG_LEVEL_APP:INFO}
-
-nats:
-  url: ${NATS_URL:nats://localhost:4222}
-  connectTimeoutMs: ${NATS_CONNECT_TIMEOUT_MS:3000}
-  reconnectWaitMs: ${NATS_RECONNECT_WAIT_MS:500}
-  maxReconnects: ${NATS_MAX_RECONNECTS:-1}
-  pingIntervalSec: ${NATS_PING_INTERVAL_SEC:10}
-  flushOnClose: ${NATS_FLUSH_ON_CLOSE:true}
-
-server:
-  port: 8081
+discovery:
+  refreshMs: 600000      # каждые 10 минут
+  deleteStale: true      # удалять рынки, которых больше нет в листинге
+  min:
+    spot:
+      vol24hUsd: 200000
+      depth50Usd: 1000
+    perp:
+      vol24hUsd: 5000000
+      depth50Usd: 2000
+    dex:
+      tvlUsd: 100000
+      vol24hUsd: 20000
+      ageHours: 24
+  quality:
+    depthWeight: 0.5     # w = depthWeight * depthRatio + (1 - depthWeight) * volRatio
+    volWeight: 0.5
