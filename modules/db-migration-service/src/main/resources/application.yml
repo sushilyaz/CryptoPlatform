@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  liquibase:
+    enabled: true
+    change-log: ${SPRING_LIQUIBASE_CHANGE_LOG:classpath:db/changelog/changelog-master.yml}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+logging:
+  level:
+    liquibase: info
+
+migration:
+  exit-after-run: ${MIGRATION_EXIT_AFTER_RUN:true}
