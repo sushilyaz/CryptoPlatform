@@ -14,11 +14,34 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AdaptersFactory {
 
-    @Bean public DiscoveryClient binanceDiscoveryClient() { return new BinanceDiscoveryClient(); }
-    @Bean public DiscoveryClient bybitDiscoveryClient()   { return new BybitDiscoveryClient(); }
-    @Bean public DiscoveryClient bitgetDiscoveryClient()  { return new BitgetDiscoveryClient(); }
-    @Bean public DiscoveryClient gateDiscoveryClient()    { return new GateDiscoveryClient(); }
-    @Bean public DiscoveryClient mexcDiscoveryClient()    { return new MexcDiscoveryClient(); }
-    @Bean public DiscoveryClient dexsDiscoveryClient()    { return new DexscreenerDiscoveryClient(); }
+    @Bean
+    public DiscoveryClient binanceDiscoveryClient() {
+        return new BinanceDiscoveryClient();
+    }
+
+    @Bean
+    public DiscoveryClient bybitDiscoveryClient() {
+        return new BybitDiscoveryClient();
+    }
+
+    @Bean
+    public DiscoveryClient bitgetDiscoveryClient() {
+        return new BitgetDiscoveryClient();
+    }
+
+    @Bean
+    public DiscoveryClient gateDiscoveryClient() {
+        return new GateDiscoveryClient();
+    }
+
+    @Bean
+    public DiscoveryClient mexcDiscoveryClient() {
+        return new MexcDiscoveryClient();
+    }
+
+    @Bean
+    public DiscoveryClient dexsDiscoveryClient() {
+        return new DexscreenerDiscoveryClient();
+    }
 }
 

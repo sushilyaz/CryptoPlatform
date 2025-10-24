@@ -14,19 +14,8 @@ management:
         include: health,info
 
 discovery:
-  refreshMs: 600000      # каждые 10 минут
-  deleteStale: true      # удалять рынки, которых больше нет в листинге
-  min:
-    spot:
-      vol24hUsd: 200000
-      depth50Usd: 1000
-    perp:
-      vol24hUsd: 5000000
-      depth50Usd: 2000
-    dex:
-      tvlUsd: 100000
-      vol24hUsd: 20000
-      ageHours: 24
-  quality:
-    depthWeight: 0.5     # w = depthWeight * depthRatio + (1 - depthWeight) * volRatio
-    volWeight: 0.5
+  thresholds:
+    minSpotVol24hUsd: 200000
+    minPerpVol24hUsd: 5000000
+    minDexVol24hUsd: 20000
+    minDexTvlUsd: 100000
