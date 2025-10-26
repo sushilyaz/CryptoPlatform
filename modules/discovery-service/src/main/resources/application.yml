@@ -1,21 +1,74 @@
 spring:
   application:
     name: discovery-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cryptoscreener}
+    username: ${DB_USER:suhoi}
+    password: ${DB_PASS:suhoi}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
+      hibernate.format_sql: false
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
+
+logging:
+  level:
+    root: INFO
+    com.suhoi.discoveryservice: INFO
+    com.suhoi.discoveryservice.core: INFO
+    # подробные причины отбраковки — включай DEBUG при необходимости:
+    com.suhoi.discoveryservice.DiscoveryRunner: DEBUG
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,env
+  endpoint:
+    health:
+      show-details: when_authorized
 
 discovery:
+  # каждые 5 минут (можешь задать в мс)
+  refreshMs: ${DISCOVERY_REFRESH_MS:300000}
+
+  # активы, для которых печатаем подробные сводки (SUMMARY[...] в INFO)
+  log:
+    sampleAssets: ${DISCOVERY_SAMPLE_ASSETS:BTC,ETH,SOL}
+
   thresholds:
-    minSpotVol24hUsd: 200000
-    minPerpVol24hUsd: 5000000
-    minDexVol24hUsd: 20000
-    minDexTvlUsd: 100000
+    # дефолты на все venue
+    minSpotVol24hUsd: ${DISCOVERY_MIN_SPOT_VOL_USD:200000}     # 200k
+    minPerpVol24hUsd: ${DISCOVERY_MIN_PERP_VOL_USD:5000000}    # 5M
+    minDexVol24hUsd: ${DISCOVERY_MIN_DEX_VOL_USD:20000}        # 20k
+    minDexTvlUsd: ${DISCOVERY_MIN_DEX_TVL_USD:100000}          # 100k
+
+    # переопределения по конкретным площадкам (пример)
+    overrides:
+      spot:
+        BINANCE: 1000000      # 1M на бинансе
+        BYBIT:  400000        # 400k
+        BITGET: 300000        # 300k
+        GATE:   200000
+        MEXC:   150000
+      perp:
+        BINANCE: 15000000     # 15M
+        BYBIT:   8000000
+        BITGET:  6000000
+        GATE:    6000000
+        MEXC:    4000000
+      dexVol:
+        DEXSCREENER: 30000    # 30k
+      dexTvl:
+        DEXSCREENER: 150000   # 150k
+
+http:
+  client:
+    connect-timeout-ms: ${HTTP_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${HTTP_READ_TIMEOUT_MS:4000}

@@ -1,4 +1,4 @@
-// modules/discovery-service/src/main/java/com/suhoi/discovery/DiscoveryRunner.java
+// modules/discovery-service/src/main/java/com/suhoi/discoveryservice/DiscoveryRunner.java
 package com.suhoi.discoveryservice;
 
 import com.suhoi.api.adapter.DiscoveryClient;
@@ -22,204 +22,307 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Периодическая процедура discovery:
- *
- * <ol>
- *   <li>Собрать листинги SPOT/PERP у всех {@link ExchangeAdapter}</li>
- *   <li>Запросить 24h-объёмы/TVL через {@link MarketStatsClient}</li>
- *   <li>Отфильтровать рынки по порогам {@link DiscoveryThresholds}</li>
- *   <li>Гарантировать «якорь» для PERP: у актива должен быть SPOT или валидный DEX</li>
- *   <li>Сохранить валидные {@code Venue}/{@code Instrument}/{@code Market} в БД</li>
- * </ol>
- *
- * NB: мы сохраняем ТОЛЬКО прошедшие рынки (нет «enabled» в Market — так и задумано).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DiscoveryRunner {
 
-    private final List<ExchangeAdapter> adapters; // бины из AdaptersConfig
-    private final MarketStatsClient statsClient;  // композитный клиент 24h-объёмов
-    private final DiscoveryThresholds thresholds; // пороги анти-шума
+    private final List<ExchangeAdapter> adapters;     // бины из AdaptersConfig
+    private final MarketStatsClient statsClient;      // композитный клиент 24h-объёмов/TVL
+    private final DiscoveryThresholds thresholds;     // пороги анти-шума + overrides по venue
 
     private final VenueRepository venueRepo;
     private final InstrumentRepository instrumentRepo;
     private final MarketRepository marketRepo;
 
-    /**
-     * Авто-обновление каждые N минут (по умолчанию 5 мин).
-     * Можно дополнительно сделать REST-эндпойнт, который дергает этот метод вручную.
-     */
+    // Можно перечислить активы для которых хотим детальный INFO-лог (иначе только DEBUG)
+    // Пример конфигурации — discovery.log.sampleAssets: BTC,ETH,SOL
+    private final Set<String> sampleAssets = new HashSet<>();
+
     @Scheduled(initialDelay = 5_000, fixedDelayString = "${discovery.refreshMs:300000}")
     @Transactional
     public void refresh() {
-        long tStart = System.currentTimeMillis();
-        log.info("Discovery refresh: start");
+        long t0 = System.currentTimeMillis();
+        log.info("DISCOVERY: start refresh");
 
-        // 1) собрать листинги SPOT + PERP
+        // 1) собрать листинги SPOT + PERP по всем адаптерам
         List<VenueListing> listings = new ArrayList<>();
-        for (ExchangeAdapter a : adapters) {
-            DiscoveryClient d = a.discovery();
-            safeAddAll(listings, d.listSpotUsdt());
-            safeAddAll(listings, d.listPerpUsdt());
+        Map<String, int[]> countersByAdapter = new LinkedHashMap<>(); // venue -> [spot, perp, futures, dex]
+
+        for (ExchangeAdapter adapter : adapters) {
+            String venue = safeUpper(adapter.venue());
+            int spotCnt = 0, perpCnt = 0, futCnt = 0, dexCnt = 0;
+
+            try {
+                DiscoveryClient d = adapter.discovery();
+
+                List<VenueListing> spot = safeList(d.listSpotUsdt());
+                spotCnt = spot.size();
+                listings.addAll(spot);
+
+                List<VenueListing> perp = safeList(d.listPerpUsdt());
+                perpCnt = perp.size();
+                listings.addAll(perp);
+
+                // если где-то будет DEX discovery — можно добавить сюда и увеличить dexCnt
+            } catch (Throwable t) {
+                log.warn("DISCOVERY: adapter {} discovery failed: {}", venue, t.toString());
+            }
+
+            countersByAdapter.put(venue, new int[]{spotCnt, perpCnt, futCnt, dexCnt});
         }
+
         if (listings.isEmpty()) {
-            log.warn("Discovery refresh: no listings from adapters");
+            log.warn("DISCOVERY: no listings collected; aborting refresh");
             return;
         }
 
-        // 2) подготовить MarketRef → стянуть 24h-метрики
+        // краткая сводка по адаптерам
+        countersByAdapter.forEach((venue, c) ->
+                log.info("DISCOVERY: venue={} listings => spot={}, perp={}, futures={}, dex={}",
+                        venue, c[0], c[1], c[2], c[3])
+        );
+
+        // 2) составить refs и получить 24h-статы
         List<MarketRef> refs = listings.stream()
                 .map(v -> new MarketRef(v.base, v.venue, v.kind, v.nativeSymbol))
                 .toList();
 
-        Map<MarketRef, MarketStats> statByRef = statsClient.fetch24hStats(refs);
+        Map<MarketRef, MarketStats> statByRef = Collections.emptyMap();
+        try {
+            statByRef = statsClient.fetch24hStats(refs);
+            log.info("DISCOVERY: fetched stats for {} markets (requested={})", statByRef.size(), refs.size());
+        } catch (Throwable t) {
+            log.warn("DISCOVERY: statsClient.fetch24hStats failed: {}", t.toString());
+        }
 
-        // 3) применить пороги
+        // 3) применить пороги с учётом venue-override'ов
         Set<MarketRef> passed = new HashSet<>();
         Map<String, Boolean> hasSpotOrDexByAsset = new HashMap<>();
 
         for (VenueListing v : listings) {
-            MarketRef mref = new MarketRef(v.base, v.venue, v.kind, v.nativeSymbol);
-            MarketStats st = statByRef.get(mref);
-            if (st == null || st.vol24hUsd() == null) continue;
+            MarketRef ref = new MarketRef(v.base, v.venue, v.kind, v.nativeSymbol);
+            MarketStats st = statByRef.get(ref);
 
-            String kind = v.kind.toUpperCase(Locale.ROOT);
-            switch (kind) {
-                case "SPOT" -> {
-                    if (ge(st.vol24hUsd(), thresholds.minSpotVol24hUsd())) {
-                        passed.add(mref);
-                        hasSpotOrDexByAsset.put(v.base, true);
-                    }
-                }
-                case "PERP", "FUTURES" -> {
-                    if (ge(st.vol24hUsd(), thresholds.minPerpVol24hUsd())) {
-                        passed.add(mref);
-                    }
-                }
+            if (st == null) {
+                log.debug("FILTER: asset={} venue={} kind={} symbol={} -> drop(no_stats)",
+                        v.base, v.venue, v.kind, v.nativeSymbol);
+                continue;
+            }
+            if (st.vol24hUsd() == null) {
+                log.debug("FILTER: asset={} venue={} kind={} symbol={} -> drop(no_vol24h)",
+                        v.base, v.venue, v.kind, v.nativeSymbol);
+                continue;
+            }
+
+            String kind = upper(v.kind);
+            boolean ok = switch (kind) {
+                case "SPOT" -> ge(st.vol24hUsd(), thresholds.effectiveSpotVol(v.venue));
+                case "PERP", "FUTURES" -> ge(st.vol24hUsd(), thresholds.effectivePerpVol(v.venue));
                 case "DEX" -> {
-                    if (ge(st.vol24hUsd(), thresholds.minDexVol24hUsd())
+                    BigDecimal volThr = thresholds.effectiveDexVol(v.venue);
+                    BigDecimal tvlThr = thresholds.effectiveDexTvl(v.venue);
+                    boolean res = ge(st.vol24hUsd(), volThr)
                             && st.liquidityUsd() != null
-                            && ge(st.liquidityUsd(), thresholds.minDexTvlUsd())) {
-                        passed.add(mref);
-                        hasSpotOrDexByAsset.put(v.base, true);
-                    }
+                            && ge(st.liquidityUsd(), tvlThr);
+                    yield res;
                 }
-                default -> { /* ignore */ }
+                default -> false;
+            };
+
+            if (ok) {
+                passed.add(ref);
+                if ("SPOT".equals(kind) || "DEX".equals(kind)) {
+                    hasSpotOrDexByAsset.put(v.base, true);
+                }
+                log.debug("FILTER: asset={} venue={} kind={} symbol={} -> PASS (vol24h={}, liq={})",
+                        v.base, v.venue, v.kind, v.nativeSymbol, st.vol24hUsd(), st.liquidityUsd());
+            } else {
+                log.debug("FILTER: asset={} venue={} kind={} symbol={} -> DROP (vol24h={}, liq={}) thr[spot={},perp={},dexVol={},dexTvl={}]",
+                        v.base, v.venue, v.kind, v.nativeSymbol, st.vol24hUsd(), st.liquidityUsd(),
+                        thresholds.effectiveSpotVol(v.venue), thresholds.effectivePerpVol(v.venue),
+                        thresholds.effectiveDexVol(v.venue), thresholds.effectiveDexTvl(v.venue));
             }
         }
 
-        // 4) удерживаем только PERP/FUTURES, у которых есть «якорь» SPOT или валидный DEX по этому asset
+        // 4) убрать деривативы без «якоря» (SPOT/DEX) по активу
+        int beforeAnchor = passed.size();
         passed.removeIf(m ->
                 (eqi(m.kind(), "PERP") || eqi(m.kind(), "FUTURES"))
                         && !Boolean.TRUE.equals(hasSpotOrDexByAsset.get(m.asset()))
         );
+        int removedByAnchor = beforeAnchor - passed.size();
+        if (removedByAnchor > 0) {
+            log.info("DISCOVERY: removed {} derivative markets without anchor (spot/dex)", removedByAnchor);
+        }
 
+        // 4.1) доп. шаг — если по (asset, venue, kind) несколько записей, оставить лучшую по vol (DEX: vol, затем TVL)
         Map<String, MarketRef> bestByAvk = new HashMap<>();
         for (MarketRef m : passed) {
-            String key = (m.asset() + "|" + m.venue() + "|" + m.kind()).toUpperCase(Locale.ROOT);
+            String k = (upper(m.asset()) + "|" + upper(m.venue()) + "|" + upper(m.kind()));
+            MarketRef cur = bestByAvk.get(k);
             MarketStats st = statByRef.get(m);
-            if (st == null) continue;
-
-            MarketRef curBest = bestByAvk.get(key);
-            if (curBest == null) {
-                bestByAvk.put(key, m);
-                continue;
-            }
-            MarketStats stBest = statByRef.get(curBest);
-            // сравниваем vol; если равны и это DEX — сравним liquidity
-            int cmp = st.vol24hUsd().compareTo(stBest.vol24hUsd());
-            if (cmp > 0 || (cmp == 0 && m.kind().equalsIgnoreCase("DEX")
-                    && st.liquidityUsd() != null && stBest.liquidityUsd() != null
-                    && st.liquidityUsd().compareTo(stBest.liquidityUsd()) > 0)) {
-                bestByAvk.put(key, m);
+            if (cur == null) {
+                bestByAvk.put(k, m);
+            } else {
+                MarketStats stCur = statByRef.get(cur);
+                int cmp = st.vol24hUsd().compareTo(stCur.vol24hUsd());
+                if (cmp > 0 || (cmp == 0 && "DEX".equalsIgnoreCase(m.kind())
+                        && st.liquidityUsd() != null && stCur.liquidityUsd() != null
+                        && st.liquidityUsd().compareTo(stCur.liquidityUsd()) > 0)) {
+                    bestByAvk.put(k, m);
+                }
             }
         }
         Set<MarketRef> finalEnabled = new HashSet<>(bestByAvk.values());
-        // 5) сохранить в БД (venues, instruments, markets)
-        persist(listings, finalEnabled);
+        log.info("DISCOVERY: final enabled markets = {} (after best-of and anchor rules)", finalEnabled.size());
 
-        long dt = System.currentTimeMillis() - tStart;
-        log.info("Discovery refresh: done in {} ms (listings={}, passed={})", dt, listings.size(), passed.size());
+        // 4.2) сводки по активам (легко увидеть «для BTC спот на X, деривативы на Y, dex Z»)
+        summarizeByAsset(listings, finalEnabled);
+
+        // 5) сохранить в БД только прошедшие рынки
+        PersistStats ps = persist(listings, finalEnabled);
+        log.info("DISCOVERY: persist summary -> venues[created={}] instruments[created={}] markets[upserted={}]",
+                ps.venuesCreated, ps.instrumentsCreated, ps.marketsUpserted);
+
+        long dt = System.currentTimeMillis() - t0;
+        log.info("DISCOVERY: refresh done in {} ms", dt);
     }
 
-    // -------------------- persistence под твои сущности --------------------
+    // --------- persist ---------
 
-    private void persist(List<VenueListing> listings, Set<MarketRef> enabledRefs) {
+    private PersistStats persist(List<VenueListing> listings, Set<MarketRef> enabledRefs) {
+        int venuesCreated = 0;
+        int instrumentsCreated = 0;
+        int marketsUpserted = 0;
+
         // a) venues
         Set<String> venues = listings.stream().map(v -> v.venue).collect(Collectors.toSet());
         for (String code : venues) {
-            venueRepo.findById(code).orElseGet(() -> {
+            boolean exists = venueRepo.existsById(code);
+            if (!exists) {
                 var venue = new Venue();
-                venue.setVenue(code);     // ID = venue
-                venue.setName(code);      // простое читаемое имя (можешь заменить на красивое)
+                venue.setVenue(code);
+                venue.setName(code);
                 venue.setEnabled(true);
-                return venueRepo.save(venue);
-            });
+                venueRepo.save(venue);
+                venuesCreated++;
+                log.debug("PERSIST: venue created {}", code);
+            }
         }
 
         // b) instruments
         Set<String> assets = listings.stream().map(v -> v.base).collect(Collectors.toSet());
         for (String asset : assets) {
-            instrumentRepo.findById(asset).orElseGet(() -> {
+            boolean exists = instrumentRepo.existsById(asset);
+            if (!exists) {
                 var instr = new Instrument();
-                instr.setAsset(asset);          // ID
+                instr.setAsset(asset);
                 instr.setBaseSymbol(asset);
                 instr.setQuoteSymbol("USDT");
-                instr.setScale(Math.max(0, guessScale(listings, asset))); // грубая оценка
-                return instrumentRepo.save(instr);
-            });
+                instr.setScale(Math.max(0, guessScale(listings, asset)));
+                instrumentRepo.save(instr);
+                instrumentsCreated++;
+                log.debug("PERSIST: instrument created {}", asset);
+            }
         }
 
-        // c) markets — сохраняем ТОЛЬКО прошедшие
-        Map<String, List<VenueListing>> byKey = listings.stream()
-                .collect(Collectors.groupingBy(v -> key(v.base, v.venue, v.kind)));
-
+        // c) markets — только прошедшие
         for (VenueListing v : listings) {
             MarketRef ref = new MarketRef(v.base, v.venue, v.kind, v.nativeSymbol);
-            if (!enabledRefs.contains(ref)) continue; // НЕ хранить «пыль»
+            if (!enabledRefs.contains(ref)) continue;
 
             var existing = marketRepo.findByAssetAndVenueAndKind(
-                    v.base, v.venue, MarketKind.valueOf(v.kind.toUpperCase(Locale.ROOT))
+                    v.base, v.venue, MarketKind.valueOf(upper(v.kind))
             );
 
             Market m = existing.orElseGet(() -> {
                 var nm = new Market();
                 nm.setAsset(v.base);
                 nm.setVenue(v.venue);
-                nm.setKind(MarketKind.valueOf(v.kind.toUpperCase(Locale.ROOT)));
+                nm.setKind(MarketKind.valueOf(upper(v.kind)));
                 return nm;
             });
 
-            // обновляем витрину полей (что у нас есть из листинга)
             m.setNativeSymbol(v.nativeSymbol);
             m.setStatus(v.status);
-            // minQty/minNotional в VenueListing нет — оставляем как есть/NULL
 
             marketRepo.save(m);
+            marketsUpserted++;
+            log.debug("PERSIST: market upsert asset={} venue={} kind={} symbol={}",
+                    v.base, v.venue, v.kind, v.nativeSymbol);
+        }
+
+        return new PersistStats(venuesCreated, instrumentsCreated, marketsUpserted);
+    }
+
+    private record PersistStats(int venuesCreated, int instrumentsCreated, int marketsUpserted) {}
+
+    // --------- утилиты/сводки/логика ---------
+
+    private void summarizeByAsset(List<VenueListing> listings, Set<MarketRef> enabled) {
+        // чтобы понимать «что получилось» не заглядывая в БД
+        Map<String, List<VenueListing>> byAsset = listings.stream()
+                .collect(Collectors.groupingBy(v -> upper(v.base)));
+
+        for (var e : byAsset.entrySet()) {
+            String asset = e.getKey();
+
+            // наборы до фильтров
+            Set<String> spotVenues = e.getValue().stream()
+                    .filter(v -> "SPOT".equalsIgnoreCase(v.kind))
+                    .map(v -> upper(v.venue)).collect(Collectors.toCollection(TreeSet::new));
+            Set<String> perpVenues = e.getValue().stream()
+                    .filter(v -> "PERP".equalsIgnoreCase(v.kind) || "FUTURES".equalsIgnoreCase(v.kind))
+                    .map(v -> upper(v.venue)).collect(Collectors.toCollection(TreeSet::new));
+            Set<String> dexVenues = e.getValue().stream()
+                    .filter(v -> "DEX".equalsIgnoreCase(v.kind))
+                    .map(v -> upper(v.venue)).collect(Collectors.toCollection(TreeSet::new));
+
+            // наборы «после»
+            Set<String> spotEnabled = new TreeSet<>();
+            Set<String> perpEnabled = new TreeSet<>();
+            Set<String> dexEnabled = new TreeSet<>();
+
+            for (MarketRef m : enabled) {
+                if (!upper(m.asset()).equals(asset)) continue;
+                switch (upper(m.kind())) {
+                    case "SPOT" -> spotEnabled.add(upper(m.venue()));
+                    case "PERP", "FUTURES" -> perpEnabled.add(upper(m.venue()));
+                    case "DEX" -> dexEnabled.add(upper(m.venue()));
+                }
+            }
+
+            boolean sample = sampleAssets.contains(asset);
+            if (sample) {
+                // подробный INFO для интересующих активов
+                log.info("SUMMARY[{}]: SPOT all={} enabled={} | PERP all={} enabled={} | DEX all={} enabled={}",
+                        asset, spotVenues, spotEnabled, perpVenues, perpEnabled, dexVenues, dexEnabled);
+            } else {
+                // сжатый INFO и подробности в DEBUG
+                log.info("SUMMARY[{}]: SPOT={}→{}, PERP={}→{}, DEX={}→{}",
+                        asset, spotVenues.size(), spotEnabled.size(),
+                        perpVenues.size(), perpEnabled.size(),
+                        dexVenues.size(), dexEnabled.size());
+                log.debug("SUMMARY_DETAILS[{}]: SPOT all={} enabled={}", asset, spotVenues, spotEnabled);
+                log.debug("SUMMARY_DETAILS[{}]: PERP all={} enabled={}", asset, perpVenues, perpEnabled);
+                log.debug("SUMMARY_DETAILS[{}]: DEX  all={} enabled={}", asset, dexVenues, dexEnabled);
+            }
         }
     }
 
-    // -------------------- утилиты --------------------
-
     private static boolean ge(BigDecimal x, BigDecimal y) { return x.compareTo(y) >= 0; }
     private static boolean eqi(String a, String b) { return a != null && a.equalsIgnoreCase(b); }
-    private static void safeAddAll(List<VenueListing> dst, List<VenueListing> src) { if (src != null) dst.addAll(src); }
-    private static String key(String asset, String venue, String kind) { return asset + "|" + venue + "|" + kind.toUpperCase(Locale.ROOT); }
+    private static String upper(String s) { return s == null ? null : s.toUpperCase(Locale.ROOT); }
+    private static String safeUpper(String s) { return s == null ? "UNKNOWN" : s.toUpperCase(Locale.ROOT); }
+    private static <T> List<T> safeList(List<T> l) { return l == null ? List.of() : l; }
 
-    /**
-     * Очень грубая оценка scale по priceScale листингов этого актива (если есть),
-     * иначе дефолт 8. Этот scale влияет только на визуализацию/округления.
-     */
     private static int guessScale(List<VenueListing> listings, String asset) {
         return listings.stream()
-                .filter(v -> asset.equals(v.base))
+                .filter(v -> asset.equalsIgnoreCase(v.base))
                 .map(v -> v.priceScale)
                 .filter(ps -> ps > 0 && ps < 18)
                 .min(Integer::compareTo)
