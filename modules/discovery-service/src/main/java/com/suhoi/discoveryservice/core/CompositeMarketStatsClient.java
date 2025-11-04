@@ -1,4 +1,3 @@
-// modules/discovery-service/src/main/java/com/suhoi/discoveryservice/core/CompositeMarketStatsClient.java
 package com.suhoi.discoveryservice.core;
 
 import com.suhoi.discovery.MarketRef;

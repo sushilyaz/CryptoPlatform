@@ -46,42 +46,64 @@ configure([
 	}
 }
 
-/**
- * Приложения (Spring Boot сервисы)
- */
-def appModules = [
+def appModulesWithDb = [
 		project(':modules:db-migration-service'),
 		project(':modules:discovery-service'),
+
+]
+
+def appModulesNoDb = [
+		project(':modules:api-service'),
 		project(':modules:stream-router'),
 		project(':modules:fairprice-service'),
 		project(':modules:bias-service'),
 		project(':modules:detector-service'),
-		project(':modules:notifier-service'),
-		project(':modules:api-service')
+		project(':modules:notifier-service')
 ]
 
-configure(appModules) {
+configure(appModulesWithDb) {
 	apply plugin: 'org.springframework.boot'
 	apply plugin: 'io.spring.dependency-management'
 
 	dependencies {
 		implementation project(':modules:core')
-		implementation project(':modules:persistence')       // NEW: entities + repos + autoconfig
+		implementation project(':modules:persistence')
 		implementation 'org.springframework.boot:spring-boot-starter-web'
 		implementation 'org.springframework.boot:spring-boot-starter'
-//		implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+		runtimeOnly  'org.postgresql:postgresql'
 
 		compileOnly 'org.projectlombok:lombok:1.18.34'
 		annotationProcessor 'org.projectlombok:lombok:1.18.34'
 		testCompileOnly 'org.projectlombok:lombok:1.18.34'
 		testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-		// DB driver for runtime services
-//		runtimeOnly 'org.postgresql:postgresql'
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	}
+}
+
+configure(appModulesNoDb) {
+	apply plugin: 'org.springframework.boot'
+	apply plugin: 'io.spring.dependency-management'
+
+	dependencies {
+		implementation project(':modules:core')
+		implementation 'org.springframework.boot:spring-boot-starter-web'
+		implementation 'org.springframework.boot:spring-boot-starter-actuator'
+		implementation 'org.springframework.boot:spring-boot-starter-validation'
+		// api-service использует Redis → добавим реальный стартер Redis
+		implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+		// НИКАКОГО persistence / JPA тут быть не должно
+
+		compileOnly 'org.projectlombok:lombok:1.18.34'
+		annotationProcessor 'org.projectlombok:lombok:1.18.34'
+		testCompileOnly 'org.projectlombok:lombok:1.18.34'
+		testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 
 		testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	}
 }
+
 
 /** Подключаем dotenv ТОЛЬКО к подпроектам с Spring Boot */
 subprojects { subproj ->

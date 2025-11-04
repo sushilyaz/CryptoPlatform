@@ -24,7 +24,6 @@ public final class DexscreenerMarketStatsClient implements VenueMarketStatsClien
         Instant now = Instant.now();
 
         for (MarketRef m : markets) {
-            // nativeSymbol формата "chainId:pairAddress"
             String[] parts = m.nativeSymbol().split(":", 2);
             if (parts.length != 2) continue;
             String chain = parts[0], pair = parts[1];

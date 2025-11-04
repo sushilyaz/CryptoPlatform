@@ -1,0 +1,1 @@
+GET https://api-manager.upbit.com/api/v1/announcements?os=web&page=1&per_page=20&category=trade

@@ -22,22 +22,38 @@ public final class MexcMarketStatsClient implements VenueMarketStatsClient {
     public Map<MarketRef, MarketStats> fetch(Collection<MarketRef> markets) {
         Map<MarketRef, MarketStats> out = new HashMap<>();
         Instant now = Instant.now();
+
+        Map<String, MarketRef> spot = new HashMap<>();
+        Map<String, MarketRef> perp = new HashMap<>();
         for (MarketRef m : markets) {
-            if ("SPOT".equalsIgnoreCase(m.kind())) {
-                JsonNode n = getJson("https://api.mexc.com/api/v3/ticker/24hr?symbol=" + m.nativeSymbol());
-                BigDecimal qv = num(n, "quoteVolume");
-                if (qv != null) out.put(m, new MarketStats(qv, null, now));
-            } else { // PERP/FUTURES
-                String sym = m.nativeSymbol().replace("-", "_");
-                JsonNode root = getJson("https://contract.mexc.com/api/v1/contract/ticker?symbol=" + sym);
-                JsonNode data = root.path("data");
-                if (data.isArray() && data.size() > 0) {
-                    BigDecimal turnover = num(data.get(0), "turnover24h");
-                    if (turnover == null) turnover = num(data.get(0), "turnover");
-                    if (turnover != null) out.put(m, new MarketStats(turnover, null, now));
+            if ("SPOT".equalsIgnoreCase(m.kind())) spot.put(m.nativeSymbol(), m);
+            else perp.put(m.nativeSymbol(), m);
+        }
+
+        if (!spot.isEmpty()) {
+            JsonNode root = getJson("https://api.mexc.com/api/v3/ticker/24hr");
+            for (JsonNode n : root) {
+                String symbol = n.path("symbol").asText();
+                MarketRef ref = spot.get(symbol);
+                if (ref != null) {
+                    BigDecimal quoteVol = num(n, "quoteVolume");
+                    if (quoteVol != null) out.put(ref, new MarketStats(quoteVol, null, now));
                 }
             }
         }
+        if (!perp.isEmpty()) {
+            JsonNode root = getJson("https://contract.mexc.com/api/v1/contract/ticker");
+            JsonNode data = root.get("data");
+            for (JsonNode n : data) {
+                String symbol = n.path("symbol").asText();
+                MarketRef ref = perp.get(symbol);
+                if (ref != null) {
+                    BigDecimal turnover = num(n, "volume24");
+                    if (turnover != null) out.put(ref, new MarketStats(turnover, null, now));
+                }
+            }
+        }
+
         return out;
     }
 

@@ -1,11 +1,11 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${DB_NAME:jdbc:postgresql://localhost:5432/cryptoscreener}
+    username: ${DB_USER}
+    password: ${DB_PASS}
   liquibase:
     enabled: true
-    change-log: ${SPRING_LIQUIBASE_CHANGE_LOG:classpath:db/changelog/changelog-master.yml}
+    change-log: ${CHANGELOG_PATH:classpath:db/changelog-master.yml}
   jpa:
     hibernate:
       ddl-auto: validate
